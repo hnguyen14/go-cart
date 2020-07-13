@@ -24,5 +24,6 @@ func main() {
 			"message": "pong",
 		})
 	})
+	r.POST("/item", AddItemHandler)
 	r.Run(fmt.Sprintf(":%v", config.Server.Port))
 }

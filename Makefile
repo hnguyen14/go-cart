@@ -18,9 +18,9 @@ build: vendor
 		-ldflags "-s -X main.version=$(VERSION) -X main.revision=$(REVISION)"
 
 .PHONY: run
-run:
+run: build
 	godotenv ./dist/${APP_NAME}
 .PHONY: test
 test:
-	go test ./... `
+	go test ./... \
 	-cover
