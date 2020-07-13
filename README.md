@@ -1,3 +1,3 @@
 # GO CART
 
-Because, why not?
+Playground with a purpose.

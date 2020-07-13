@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -13,23 +12,51 @@ type AddItemPostData struct {
 	URL string `form:"url" binding:"required"`
 }
 
-func fetchURL(url string) (*Page, error) {
-	res, err := http.Get(url)
-	if err != nil {
-		return nil, fmt.Errorf("Fetch URL %w", err)
-	}
-	content, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return nil, fmt.Errorf("Read page content %w", err)
-	}
+// FetchedData ...
+type FetchedData struct {
+	Error error
+	Resp  []byte
+}
 
-	page, err := ParseHTML(content)
-	if err != nil {
-		return nil, fmt.Errorf("Parse content %w", err)
-	}
-	page.URL = url
+// ParsedData ...
+type ParsedData struct {
+	Error error
+	Page  Page
+}
 
-	return page, nil
+func fetchURL(url string) <-chan FetchedData {
+	respChan := make(chan FetchedData)
+	go func() {
+		defer close(respChan)
+		res, err := http.Get(url)
+		if err != nil {
+			respChan <- FetchedData{Error: err}
+		}
+		content, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			respChan <- FetchedData{Error: err}
+		}
+		respChan <- FetchedData{Resp: content}
+	}()
+	return respChan
+}
+
+func parseContent(fetchedDataChan <-chan FetchedData) <-chan ParsedData {
+	parsed := make(chan ParsedData)
+	go func() {
+		defer close(parsed)
+		fetchedData := <-fetchedDataChan
+		if fetchedData.Error != nil {
+			parsed <- ParsedData{Error: fetchedData.Error}
+		}
+		page, err := ParseHTML(fetchedData.Resp)
+		if err != nil {
+			parsed <- ParsedData{Error: err}
+		}
+		parsed <- ParsedData{Page: *page}
+
+	}()
+	return parsed
 }
 
 // AddItemHandler ...
@@ -39,11 +66,13 @@ func AddItemHandler(c *gin.Context) {
 		return
 	}
 
-	page, err := fetchURL(data.URL)
-	if err != nil {
+	parseChan := parseContent(fetchURL(data.URL))
+	parsed := <-parseChan
+
+	if parsed.Error != nil {
 		c.String(http.StatusInternalServerError, "")
 		return
 	}
 
-	c.JSON(http.StatusCreated, page)
+	c.JSON(http.StatusCreated, parsed.Page)
 }
