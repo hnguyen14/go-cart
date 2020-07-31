@@ -1,7 +1,10 @@
 package main
 
 import (
+	"crypto/sha256"
+	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -41,22 +44,11 @@ func fetchURL(url string) <-chan FetchedData {
 	return respChan
 }
 
-func parseContent(fetchedDataChan <-chan FetchedData) <-chan ParsedData {
-	parsed := make(chan ParsedData)
-	go func() {
-		defer close(parsed)
-		fetchedData := <-fetchedDataChan
-		if fetchedData.Error != nil {
-			parsed <- ParsedData{Error: fetchedData.Error}
-		}
-		page, err := ParseHTML(fetchedData.Resp)
-		if err != nil {
-			parsed <- ParsedData{Error: err}
-		}
-		parsed <- ParsedData{Page: *page}
+func asSHA256(o interface{}) string {
+	h := sha256.New()
+	h.Write([]byte(fmt.Sprintf("%v", o)))
 
-	}()
-	return parsed
+	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
 // AddItemHandler ...
@@ -65,14 +57,20 @@ func AddItemHandler(c *gin.Context) {
 	if err := c.BindJSON(&data); err != nil {
 		return
 	}
+	ch := fetchURL(data.URL)
+	rsp := <-ch
 
-	parseChan := parseContent(fetchURL(data.URL))
-	parsed := <-parseChan
+	hashedURL := asSHA256(data.URL)
+	fileName := fmt.Sprintf("public/tmp/%s.html", hashedURL)
 
-	if parsed.Error != nil {
-		c.String(http.StatusInternalServerError, "")
-		return
+	err := ioutil.WriteFile(fileName, rsp.Resp, 0644)
+
+	if err != nil {
+		log.Printf("Writing file %s", err)
+		c.AbortWithStatus(http.StatusInternalServerError)
 	}
 
-	c.JSON(http.StatusCreated, parsed.Page)
+	c.JSON(http.StatusCreated, gin.H{
+		"url": fmt.Sprintf("/html/%s.html", hashedURL),
+	})
 }

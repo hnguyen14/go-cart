@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/gin-gonic/gin"
 )
@@ -13,7 +14,7 @@ var (
 func main() {
 	config, err := NewConfig("./config.yml")
 	if err != nil {
-		fmt.Printf("Cannot load config %v", err)
+		log.Fatal("Cannot load config file")
 		return
 	}
 
@@ -24,6 +25,13 @@ func main() {
 			"message": "pong",
 		})
 	})
-	r.POST("/item", AddItemHandler)
+	r.Static("/html", "./public/tmp")
+	r.LoadHTMLGlob("templates/*")
+	r.GET("/addItem", RenderAddItemHandler)
+	api := r.Group("api")
+	{
+		api.POST("/items", AddItemHandler)
+	}
+
 	r.Run(fmt.Sprintf(":%v", config.Server.Port))
 }
