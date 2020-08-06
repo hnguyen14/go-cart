@@ -26,6 +26,7 @@ func main() {
 		})
 	})
 	r.Static("/html", "./public/tmp")
+	r.Static("/js", "./public/js")
 	r.LoadHTMLGlob("templates/*")
 	r.GET("/addItem", RenderAddItemHandler)
 	api := r.Group("api")
