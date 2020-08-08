@@ -1,4 +1,4 @@
-package main
+package app
 
 import (
 	"fmt"
@@ -9,6 +9,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// InsertURLStmt - Insert URL
+const InsertURLStmt = "insert into url (url) values ($1) returning id"
+
 // CreateURLPostData ...
 type CreateURLPostData struct {
 	URL string `form:"url" binding:"required"`
@@ -18,12 +21,6 @@ type CreateURLPostData struct {
 type FetchedData struct {
 	Error error
 	Resp  []byte
-}
-
-// ParsedData ...
-type ParsedData struct {
-	Error error
-	Page  Page
 }
 
 func fetchURL(url string) <-chan FetchedData {
@@ -50,15 +47,13 @@ func (app *App) CreateURLHandler(c *gin.Context) {
 		return
 	}
 
-	stmtStr := `insert into url (url) values ($1) returning id`
 	urlID := ""
-	err := app.DB.QueryRow(stmtStr, data.URL).Scan(&urlID)
+	err := app.DB.QueryRow(InsertURLStmt, data.URL).Scan(&urlID)
 	if err != nil {
 		log.Printf("Adding URL to DB %v", err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
-	fmt.Printf("-------- db insert result %+v", urlID)
 
 	ch := fetchURL(data.URL)
 	rsp := <-ch
