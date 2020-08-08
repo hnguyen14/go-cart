@@ -49,7 +49,7 @@ function setupIframeJS (e) {
 }
 
 function onItemAddSuccess (rsp) {  
-    const previewURL = rsp.data.url
+    const previewURL = rsp.data.cachedURL
     const iframe = document.getElementById("preview")
     iframe.addEventListener("load", setupIframeJS)
     document.getElementById("preview").src=previewURL
@@ -68,7 +68,7 @@ function loadURL (e) {
     }
     axios({
         method: 'post',
-        url: '/api/items',
+        url: '/api/urls',
         data: { url }
     })
         .then(onItemAddSuccess)

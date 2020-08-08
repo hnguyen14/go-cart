@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto/sha256"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -10,8 +9,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// AddItemPostData ...
-type AddItemPostData struct {
+// CreateURLPostData ...
+type CreateURLPostData struct {
 	URL string `form:"url" binding:"required"`
 }
 
@@ -44,33 +43,38 @@ func fetchURL(url string) <-chan FetchedData {
 	return respChan
 }
 
-func asSHA256(o interface{}) string {
-	h := sha256.New()
-	h.Write([]byte(fmt.Sprintf("%v", o)))
-
-	return fmt.Sprintf("%x", h.Sum(nil))
-}
-
-// AddItemHandler ...
-func AddItemHandler(c *gin.Context) {
-	var data AddItemPostData
+// CreateURLHandler ...
+func (app *App) CreateURLHandler(c *gin.Context) {
+	var data CreateURLPostData
 	if err := c.BindJSON(&data); err != nil {
 		return
 	}
+
+	stmtStr := `insert into url (url) values ($1) returning id`
+	urlID := ""
+	err := app.DB.QueryRow(stmtStr, data.URL).Scan(&urlID)
+	if err != nil {
+		log.Printf("Adding URL to DB %v", err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	fmt.Printf("-------- db insert result %+v", urlID)
+
 	ch := fetchURL(data.URL)
 	rsp := <-ch
 
-	hashedURL := asSHA256(data.URL)
-	fileName := fmt.Sprintf("public/tmp/%s.html", hashedURL)
+	fileName := fmt.Sprintf("public/tmp/%s.html", urlID)
 
-	err := ioutil.WriteFile(fileName, rsp.Resp, 0644)
+	err = ioutil.WriteFile(fileName, rsp.Resp, 0644)
 
 	if err != nil {
 		log.Printf("Writing file %s", err)
 		c.AbortWithStatus(http.StatusInternalServerError)
+		return
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
-		"url": fmt.Sprintf("/html/%s.html", hashedURL),
+		"id":        urlID,
+		"cachedURL": fmt.Sprintf("/html/%s.html", urlID),
 	})
 }

@@ -12,9 +12,20 @@ type ServerConfig struct {
 	Port string `yaml:"port"`
 }
 
+// PostgresConfig ...
+type PostgresConfig struct {
+	Host     string `yaml:"host"`
+	Port     string `yaml:"port"`
+	User     string `yaml:"user"`
+	Password string `yaml:"password"`
+	DBName   string `yaml:"db_name"`
+	SSLMode  string `yaml:"ssl_mode"`
+}
+
 // Config ...
 type Config struct {
-	Server ServerConfig `yaml:"server"`
+	Server   ServerConfig   `yaml:"server"`
+	Postgres PostgresConfig `yaml:"postgres"`
 }
 
 // NewConfig returns a new decoded Config struct

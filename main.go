@@ -1,38 +1,69 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 
 	"github.com/gin-gonic/gin"
+	_ "github.com/lib/pq"
 )
 
-var (
-	config *Config
-)
+// App ...
+type App struct {
+	Config *Config
+	DB     *sql.DB
+}
 
-func main() {
+// NewApp ...
+func NewApp() *App {
 	config, err := NewConfig("./config.yml")
 	if err != nil {
 		log.Fatal("Cannot load config file")
-		return
+		return nil
 	}
 
-	r := gin.Default()
+	pgInfo := fmt.Sprintf(
+		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+		config.Postgres.Host,
+		config.Postgres.Port,
+		config.Postgres.User,
+		config.Postgres.Password,
+		config.Postgres.DBName,
+		config.Postgres.SSLMode,
+	)
+	fmt.Printf("--- connecting Postgres %s\n", pgInfo)
+	db, err := sql.Open("postgres", pgInfo)
+	if err != nil {
+		panic(err)
+	}
 
-	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"message": "pong",
-		})
-	})
-	r.Static("/html", "./public/tmp")
-	r.Static("/js", "./public/js")
-	r.LoadHTMLGlob("templates/*")
-	r.GET("/addItem", RenderAddItemHandler)
-	api := r.Group("api")
+	return &App{
+		Config: config,
+		DB:     db,
+	}
+}
+
+// NewServer ...
+func (app *App) NewServer() *gin.Engine {
+	e := gin.Default()
+
+	e.LoadHTMLGlob("templates/*")
+	e.Static("/html", "./public/tmp")
+	e.Static("/js", "./public/js")
+
+	e.GET("/addItem", RenderAddItemHandler)
+	api := e.Group("api")
 	{
-		api.POST("/items", AddItemHandler)
+		api.POST("/urls", app.CreateURLHandler)
 	}
 
-	r.Run(fmt.Sprintf(":%v", config.Server.Port))
+	return e
+}
+
+func main() {
+	app := NewApp()
+	server := app.NewServer()
+
+	server.Run(fmt.Sprintf(":%v", app.Config.Server.Port))
 }
