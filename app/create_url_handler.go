@@ -9,9 +9,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// InsertURLStmt - Insert URL
-const InsertURLStmt = "insert into url (url) values ($1) returning id"
-
 // CreateURLPostData ...
 type CreateURLPostData struct {
 	URL string `form:"url" binding:"required"`
@@ -48,7 +45,8 @@ func (app *App) CreateURLHandler(c *gin.Context) {
 	}
 
 	urlID := ""
-	err := app.DB.QueryRow(InsertURLStmt, data.URL).Scan(&urlID)
+	stmt := "insert into urls (val) values ($1) returning id"
+	err := app.DB.QueryRow(stmt, data.URL).Scan(&urlID)
 	if err != nil {
 		log.Printf("Adding URL to DB %v", err)
 		c.AbortWithStatus(http.StatusInternalServerError)

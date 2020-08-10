@@ -53,10 +53,9 @@ func (app *App) NewServer() *gin.Engine {
 	e.Static("/js", "./public/js")
 
 	e.GET("/addItem", RenderAddItemHandler)
-	api := e.Group("api")
-	{
-		api.POST("/urls", app.CreateURLHandler)
-	}
+	e.POST("/urls", app.CreateURLHandler)
+	e.GET("/urls/:urlID", app.URLHandler)
+	e.POST("/urls/:urlID/trackers", app.CreateURLTrackersHandler)
 
 	return e
 }
