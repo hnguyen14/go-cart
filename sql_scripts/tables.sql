@@ -1,3 +1,5 @@
+create extension if not exists "uuid-ossp";
+
 create table urls
 (
    	id uuid default uuid_generate_v4(),
