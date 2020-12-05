@@ -3,11 +3,12 @@ pipeline {
 	stages {
 		stage('SonarQube') {
 			environment {
-				scannerHome = tool 'GocartScanner'
+				SCANNER_HOME = tool "GocartScanner"
+				PROJECT_NAME = "GocartSonar"
 			}
 			steps {
 				withSonarQubeEnv('LocalSonarQube') {
-					sh "${scannerHome}/bin/sonar_scanner"
+					sh "$SCANNER_HOME/bin/sonar-scanner -Dsonar.projectKey=$PROJECT_NAME"
 				}
 			}
 		}
