@@ -1,13 +1,13 @@
 pipeline {
-	agent {
-		docker {
-			image '1.15.6-alpine3.12'
-		}
-	}
 	stages {
-		stage('Build') {
+		stage('SonarQube') {
+			environment {
+				scannerHome = tool 'GocartScanner'
+			}
 			steps {
-				sh 'make docker.build'
+				withSonarQubeEnv('sonarqube') {
+					sh "${scannerHome}/bin/sonar_scanner"
+				}
 			}
 		}
 	}
