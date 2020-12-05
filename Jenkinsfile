@@ -6,7 +6,7 @@ pipeline {
 				scannerHome = tool 'GocartScanner'
 			}
 			steps {
-				withSonarQubeEnv('sonarqube') {
+				withSonarQubeEnv('LocalSonarQube') {
 					sh "${scannerHome}/bin/sonar_scanner"
 				}
 			}
