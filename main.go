@@ -3,27 +3,12 @@ package main
 import (
 	"fmt"
 
-	"github.com/gin-gonic/gin"
-)
-
-var (
-	config *Config
+	"github.com/hnguyen14/go-cart/app"
 )
 
 func main() {
-	config, err := NewConfig("./config.yml")
-	if err != nil {
-		fmt.Printf("Cannot load config %v", err)
-		return
-	}
+	a := app.NewApp("./config.yml")
+	server := a.NewServer()
 
-	r := gin.Default()
-
-	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"message": "pong",
-		})
-	})
-	r.POST("/item", AddItemHandler)
-	r.Run(fmt.Sprintf(":%v", config.Server.Port))
+	server.Run(fmt.Sprintf(":%v", a.Config.Server.Port))
 }
